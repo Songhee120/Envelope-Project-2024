@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>전자봉투 생성기</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<div class="steps-container">
+    <div class="step">
+        <h2>Step 1</h2>
+        <p th:text="${sender} + ' 개인키, 공개키, 비밀키 생성 / ' + ${receiver} + ' 공개키 받기'"></p>
+        <form id="step1Form">
+            <button type="button" onclick="executeStep1()">실행</button>
+        </form>
+        <pre id="step1Output"></pre>
+    </div>
+
+    <div class="step">
+        <h2>Step 2</h2>
+        <p th:utext="'메세지의 해시값을 ' + ${sender} + '의 개인키로 암호화한 후,<br/> 메세지, 전자서명, '  + ${sender} + ' 공개키를 비밀키로 암호화'"></p>
+        <form id="step2Form">
+            <button type="button" onclick="executeStep2()">실행</button>
+        </form>
+        <pre id="step2Output"></pre>
+    </div>
+
+    <div class="step">
+        <h2>Step 3</h2>
+        <p>비밀키를 수신자 공개키로 암호화해서 전자 봉투 생성</p>
+        <form id="step3Form">
+            <button type="button" onclick="executeStep3()">실행</button>
+        </form>
+        <pre id="step3Output"></pre>
+    </div>
+
+    <form th:action="@{/result}" method="get">
+        <button type="submit">메세지 전송하기</button>
+    </form>
+</div>
+
+<script>
+    function executeStep1() {
+        $.post("/step1", function(data) {
+            $("#step1Output").text(data.step1Output);
+        });
+    }
+
+    function executeStep2() {
+        $.post("/step2", function(data) {
+            $("#step2Output").text(data.step2Output);
+        });
+    }
+
+    function executeStep3() {
+        $.post("/step3", function(data) {
+            $("#step3Output").text(data.step3Output);
+        });
+    }
+</script>
+
+</body>
+</html>

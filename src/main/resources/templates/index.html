@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>전자봉투</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}">
+</head>
+<body>
+<h1>여고추리반</h1>
+<form th:action="@{/envelope}" method="post">
+    <label for="sender">발신자:</label>
+    <select id="sender" name="sender">
+        <option th:each="user : ${users}" th:value="${user}" th:text="${user}"></option>
+    </select>
+    <br>
+    <label for="receiver">수신자:</label>
+    <select id="receiver" name="receiver">
+        <option th:each="user : ${users}" th:value="${user}" th:text="${user}"></option>
+    </select>
+    <br>
+    <br>
+    <button type="submit">전송</button>
+</form>
+</body>
+</html>
