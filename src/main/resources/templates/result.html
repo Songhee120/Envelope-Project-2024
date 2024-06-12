@@ -7,7 +7,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>도연님께 메세지가 도착하였습니다.💌</h1>
+    <h1 th:text="${receiver} +'님께 메세지가 도착하였습니다.💌'"></h1>
     <form id="confirmationForm">
         <div class="form-group">
             <label for="sender">송신자:</label>
@@ -26,16 +26,19 @@
         <button type="button" class="btn btn-primary" onclick="checkAuthenticity()">진위여부 확인하기</button>
         <div id="loading" class="loading-spinner" style="display: none;"></div>
         <div id="authenticityResult" style="display: none;">
-            <p>신뢰할 수 있는 메세지입니다.</p>
+            <p th:if="${isTrusted}">신뢰할 수 있는 메세지입니다.</p>
+            <p th:unless="${isTrusted}">신뢰할 수 없는 메세지입니다.</p>
         </div>
     </div>
 </div>
 
+<script th:inline="javascript">
+    var message = [[${message}]];
+    var sender = [[${sender}]];
+</script>
+
 <script>
     function showDetails() {
-        var sender = "exampleSender";
-        var message = "exampleMessage";
-
         document.getElementById("sender").value = sender;
         document.getElementById("message").value = message;
 

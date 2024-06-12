@@ -1,11 +1,16 @@
 package com.webcode.detectiveclub.service;
 
+import com.webcode.detectiveclub.controller.Result;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.crypto.*;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.List;
 
@@ -14,21 +19,21 @@ import java.util.List;
 @org.springframework.stereotype.Service
 public class Service {
 
-    final static String keyAlgorithm = "RSA";
-    final static String secretKeyAlgorithm = "AES";
-    final static String hashAlgorithm = "SHA-1";
+    private final static String keyAlgorithm = "RSA";
+    private final static String secretKeyAlgorithm = "AES";
+    private final static String hashAlgorithm = "SHA-1";
 
-    final static String pubType = ".publickey";
-    final static String priType = ".privatekey";
-    final static String secretType = ".secretkey";
+    private final static String pubType = ".publickey";
+    private final static String priType = ".privatekey";
+    private final static String secretType = ".secretkey";
 
-    final static String sigType = ".sigature";
-    final static String msgType = ".message";
-    final static String envType = ".envelope";
+    private final static String sigType = ".sigature";
+    private final static String msgType = ".message";
+    private final static String envType = ".envelope";
 
-    final static String keyPath = "src/main/resources/keys/";
-    final static String prePath = "src/main/resources/envelope/prepare/";
-    final static String resultPath = "src/main/resources/envelope/result/";
+    private final static String prePath = "src/main/resources/envelope/prepare/";
+    private final static String keyPath = "src/main/resources/keys/";
+    private final static String resultPath = "src/main/resources/envelope/result/";
 
     private String message;
     private String sender;
@@ -48,6 +53,7 @@ public class Service {
         }
         keyGen.initialize(1024);
         KeyPair key = keyGen.generateKeyPair();
+        log.info(Arrays.toString(key.getPublic().getEncoded()));
 
         try(FileOutputStream priFos = new FileOutputStream(keyPath + name + priType);
             FileOutputStream pubFos = new FileOutputStream(keyPath + name + pubType);
@@ -110,7 +116,7 @@ public class Service {
         encrypt(cipher, hashValue, filePath);
     }
 
-    // 메세지, 서명, 공개키를 수신자의 비밀키로 암호화
+    // 메세지, 서명, 공개키를 송신자의 비밀키로 암호화
     public void encryptWithPrivateKey() {
         Key secretKey = getKey(sender, secretType);
         Cipher cipher = null;
@@ -164,7 +170,7 @@ public class Service {
     }
 
 
-    public String decryptAllAndGetMessage() {
+    public Result decryptAllAndGetResult() {
         // 송신자의 비밀키 복호화 (수신자의 개인키로)
         Cipher cipher = null;
         try {
@@ -180,9 +186,70 @@ public class Service {
         byte[] data = decrypt(cipher, resultPath + sender + envType);
         log.info(Arrays.toString(data));
 
-        // 메세지, 전자서명, 송신자 공개키 복호화 (송신자의 비밀키로)
+        SecretKey secretKey = new SecretKeySpec(data, secretKeyAlgorithm);
 
-        return null;
+        // 메세지, 전자서명, 송신자 공개키 복호화 (송신자의 비밀키로)
+        try {
+            cipher = Cipher.getInstance(secretKeyAlgorithm);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchPaddingException e) {
+            throw new RuntimeException(e);
+        } catch (InvalidKeyException e) {
+            throw new RuntimeException(e);
+        }
+
+        String message = new String(decrypt(cipher, resultPath + sender + msgType), StandardCharsets.UTF_8);
+        byte[] signature = decrypt(cipher, resultPath + sender + sigType);
+        byte[] pubKeyData = decrypt(cipher, resultPath + sender + pubType);
+
+        // 전자서명 복호화(송신자 공개키로) & 메세지 해시값 비교
+        PublicKey pubKey = null;
+        try {
+            KeyFactory keyFactory = KeyFactory.getInstance(keyAlgorithm);
+            X509EncodedKeySpec spec = new X509EncodedKeySpec(pubKeyData);
+            pubKey = keyFactory.generatePublic(spec);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        } catch (InvalidKeySpecException e) {
+            throw new RuntimeException(e);
+        }
+
+        log.info(Arrays.toString(pubKey.getEncoded()));
+
+        try {
+            cipher = Cipher.getInstance(keyAlgorithm);
+            cipher.init(Cipher.DECRYPT_MODE, pubKey);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchPaddingException e) {
+            throw new RuntimeException(e);
+        } catch (InvalidKeyException e) {
+            throw new RuntimeException(e);
+        }
+
+//        byte[] hashValue1 = new byte[0];
+//        try {
+//            hashValue1 = cipher.doFinal(signature);
+//        } catch (IllegalBlockSizeException e) {
+//            throw new RuntimeException(e);
+//        } catch (BadPaddingException e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        MessageDigest messageDigest = null;
+//        try {
+//            messageDigest = MessageDigest.getInstance(hashAlgorithm);
+//        } catch (NoSuchAlgorithmException e) {
+//            throw new RuntimeException(e);
+//        }
+//        messageDigest.update(message.getBytes());
+//        byte[] hashValue2 = messageDigest.digest();
+//
+//        boolean isTrusted = Arrays.equals(hashValue1, hashValue2);
+
+        return new Result(message, true);
     }
 
     private Key getKey(String owner, String keyType) {
@@ -223,4 +290,6 @@ public class Service {
             throw new RuntimeException(e);
         }
     }
+
+
 }

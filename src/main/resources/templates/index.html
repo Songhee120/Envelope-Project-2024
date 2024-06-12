@@ -12,12 +12,13 @@
     <select id="sender" name="sender">
         <option th:each="user : ${users}" th:value="${user}" th:text="${user}"></option>
     </select>
-    <br>
     <label for="receiver">수신자:</label>
     <select id="receiver" name="receiver">
         <option th:each="user : ${users}" th:value="${user}" th:text="${user}"></option>
     </select>
     <br>
+    <label for="message">메시지:</label>
+    <textarea id="message" name="message" rows="2" cols="30"></textarea>
     <br>
     <button type="submit">전송</button>
 </form>
