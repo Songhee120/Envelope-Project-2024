@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>전자봉투 생성기</title>
+    <title>전자봉투</title>
     <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
@@ -28,7 +28,7 @@
 
     <div class="step">
         <h2>Step 3</h2>
-        <p>비밀키를 수신자 공개키로 암호화해서 전자 봉투 생성</p>
+        <p th:text="'비밀키를' + ${receiver} + '공개키로 암호화해서 전자 봉투 생성'"></p>
         <form id="step3Form">
             <button type="button" onclick="executeStep3()">실행</button>
         </form>

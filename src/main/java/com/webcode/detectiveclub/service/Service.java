@@ -20,8 +20,10 @@ import java.util.List;
 public class Service {
 
     private final static String keyAlgorithm = "RSA";
+    private final static String cipherAlgorithm = "RSA/ECB/PKCS1Padding";
     private final static String secretKeyAlgorithm = "AES";
     private final static String hashAlgorithm = "SHA-1";
+
 
     private final static String pubType = ".publickey";
     private final static String priType = ".privatekey";
@@ -45,25 +47,23 @@ public class Service {
 
 
     public void generateKeyPair(String name) {
-        KeyPairGenerator keyGen = null;
         try {
-            keyGen = KeyPairGenerator.getInstance(keyAlgorithm);
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance(keyAlgorithm);
+            keyGen.initialize(2048);
+            KeyPair keyPair = keyGen.generateKeyPair();
+            log.info(Arrays.toString(keyPair.getPublic().getEncoded()));
+
+            try (FileOutputStream priFos = new FileOutputStream(keyPath + name + priType);
+                 FileOutputStream pubFos = new FileOutputStream(keyPath + name + pubType);
+                 ObjectOutputStream priOos = new ObjectOutputStream(priFos);
+                 ObjectOutputStream pubOos = new ObjectOutputStream(pubFos)) {
+                priOos.writeObject(keyPair.getPrivate());
+                pubOos.writeObject(keyPair.getPublic());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
-        }
-        keyGen.initialize(1024);
-        KeyPair key = keyGen.generateKeyPair();
-        log.info(Arrays.toString(key.getPublic().getEncoded()));
-
-        try(FileOutputStream priFos = new FileOutputStream(keyPath + name + priType);
-            FileOutputStream pubFos = new FileOutputStream(keyPath + name + pubType);
-            ObjectOutputStream priOos = new ObjectOutputStream(priFos);
-            ObjectOutputStream pubOos = new ObjectOutputStream(pubFos);
-        ) {
-            priOos.writeObject(key.getPrivate());
-            pubOos.writeObject(key.getPublic());
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -102,7 +102,7 @@ public class Service {
         // 암호화 준비
         Cipher cipher = null;
         try {
-            cipher = Cipher.getInstance(keyAlgorithm);
+            cipher = Cipher.getInstance(cipherAlgorithm);
             cipher.init(Cipher.ENCRYPT_MODE, getKey(sender, priType));
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
@@ -156,7 +156,7 @@ public class Service {
         // 암호화
         Cipher cipher = null;
         try {
-            cipher = Cipher.getInstance(keyAlgorithm);
+            cipher = Cipher.getInstance(cipherAlgorithm);
             cipher.init(Cipher.ENCRYPT_MODE, pubKey);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
@@ -174,7 +174,7 @@ public class Service {
         // 송신자의 비밀키 복호화 (수신자의 개인키로)
         Cipher cipher = null;
         try {
-            cipher = Cipher.getInstance(keyAlgorithm);
+            cipher = Cipher.getInstance(cipherAlgorithm);
             cipher.init(Cipher.DECRYPT_MODE, getKey(receiver, priType));
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
@@ -184,7 +184,7 @@ public class Service {
             throw new RuntimeException(e);
         }
         byte[] data = decrypt(cipher, resultPath + sender + envType);
-        log.info(Arrays.toString(data));
+
 
         SecretKey secretKey = new SecretKeySpec(data, secretKeyAlgorithm);
 
@@ -219,7 +219,7 @@ public class Service {
         log.info(Arrays.toString(pubKey.getEncoded()));
 
         try {
-            cipher = Cipher.getInstance(keyAlgorithm);
+            cipher = Cipher.getInstance(cipherAlgorithm);
             cipher.init(Cipher.DECRYPT_MODE, pubKey);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
@@ -229,6 +229,7 @@ public class Service {
             throw new RuntimeException(e);
         }
 
+        // 패딩 오류를 해결하지 못하여 주석 처리 후 제출합니다...
 //        byte[] hashValue1 = new byte[0];
 //        try {
 //            hashValue1 = cipher.doFinal(signature);
